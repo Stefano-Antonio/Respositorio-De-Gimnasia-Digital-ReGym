@@ -48,8 +48,7 @@ router.post('/iniciarSesion', async (req, res) => {
         usuario = await Entrenador.findOne({ correo: correo, password: password });
         if (usuario) {
             return res.status(200).json({ mensaje: "Inicio de sesión exitoso", tipoUsuario: "entrenador", usuario });
-        
-        
+    
         }
 
         // Intentar encontrar al usuario en la colección de Administradores

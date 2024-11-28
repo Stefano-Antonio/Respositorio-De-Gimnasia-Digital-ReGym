@@ -2,12 +2,16 @@ const mongoose = require('mongoose');
 
 //Comentarios
 const comentario = new mongoose.Schema({
-    usuario_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Usuario', required: true },
-    comentario: { type: String, required: true },
-    movimiento: {type: String, required: true},
-    num_likes: { type: Number, default: 0 },
-    respuestas: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Respuesta' }]
-  });
+  comentario_id: { type: String, required: true ,unique: true},
+  usuario_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Usuario', required: true },
+  nombre: { type: String, required: true },
+  comentario: { type: String, required: true },
+  movimiento: { type: String, required: true },
+  num_likes: { type: Number, default: 0 },
+  liked_by: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Usuario' }], // Lista de usuarios que dieron like
+  respuestas: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Respuesta' }]
+});
+
 
 //Respuestas
 const respuesta = new mongoose.Schema({
