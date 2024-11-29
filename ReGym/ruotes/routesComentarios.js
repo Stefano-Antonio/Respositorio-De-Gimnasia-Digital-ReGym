@@ -139,8 +139,59 @@ router.post('/likeComentario', async (req, res) => {
     }
 });
 
+// Ruta para eliminar un comentario
+router.delete('/eliminarComentario/:comentarioId', async (req, res) => {
+    const { comentarioId } = req.params;
+    console.log("Eliminando comentario con ID:", comentarioId);
+
+    try {
+       
+        // Buscar y eliminar el comentario por ID
+        const comentario = await Comentario.findOneAndDelete({ comentario_id: comentarioId.trim() });
+
+        if (!comentario) {
+            return res.status(404).json({ error: "Comentario no encontrado" });
+        }
+
+        console.log("Comentario eliminado exitosamente.");
+
+        // Responder con éxito
+        return res.status(200).json({ message: "Comentario eliminado exitosamente" });
+
+    } catch (err) {
+        console.error("Error al eliminar el comentario:", err);
+        return res.status(500).json({ error: "Error al eliminar el comentario" });
+    }
+});
 
 
+router.put('/editarComentario/:comentarioId', async (req, res) => {
+    const { comentarioId } = req.params; // Obtener el ID del comentario desde la URL
+    const { userId, nuevoComentario } = req.body; // Obtener el ID del usuario y el nuevo texto del comentario desde el cuerpo de la solicitud
+
+    try {
+        console.log("Editando comentario con ID:", comentarioId, "por el usuario:", userId, "comentario nuevo:", nuevoComentario);
+
+        // Buscar el comentario por ID y verificar si el usuario tiene permisos
+        const comentario = await Comentario.findOne({ comentario_id: comentarioId });
+        console.log("Comentario encontrado:");
+    
+        if (!comentario) {
+            return res.status(404).json({ error: "Comentario no encontrado" });
+            console.log("Comentario no encontrado:");
+        }
+
+        // Actualizar el texto del comentario
+        comentario.comentario = nuevoComentario;
+        await comentario.save();
+
+        console.log("Comentario editado exitosamente.");
+        return res.status(200).json({ message: "Comentario editado exitosamente" });
+    } catch (err) {
+        console.error("Error al editar el comentario:", err);
+        return res.status(500).json({ error: "Error al editar el comentario" });
+    }
+});
 
 
 // Ruta para crear una respuesta
