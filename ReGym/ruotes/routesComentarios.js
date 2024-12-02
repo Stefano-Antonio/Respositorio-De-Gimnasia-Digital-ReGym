@@ -98,8 +98,6 @@ router.post('/likeComentario', async (req, res) => {
             return res.status(404).json({ error: "Comentario no encontrado" });
         }
         
-       
-
         console.log("Comentario encontrado. Estado inicial: num_likes=", comentario.num_likes,"usuario guardado con:", usuarioId);
 
         // Verificar si el usuario ya dio like
@@ -124,7 +122,7 @@ router.post('/likeComentario', async (req, res) => {
         }
 
         // Guardar los cambios
-        await comentario.save();
+        await comentario.save({ validateModifiedOnly: true });
         console.warn("RESPUESTA:. likes:", comentario.num_likes, "usuarioYaDioLike:", !usuarioYaDioLike, "isLiked:", isLiked);
         // Responder con el estado actualizado
         return res.status(200).json({
@@ -194,34 +192,59 @@ router.put('/editarComentario/:comentarioId', async (req, res) => {
 });
 
 
-// Ruta para crear una respuesta
-router.post('/respuestas', async (req, res) => {
-            try {
-                const { comentario_id, respuesta } = req.body;
+// Ruta para responder a un comentario
+router.post('/responder', async (req, res) => {
+    
+    try {
 
-                // Crear una nueva respuesta
-                const nuevaRespuesta = new Respuesta({
-                    usuario,
-                    comentario_id,
-                    respuesta
-                });
+        const { usuario_id, respuesta, comentario_id } = req.body; // Obtener datos desde el cuerpo de la solicitud
+        
+        
+        const comentario = await Comentario.findOne({ comentario_id: comentario_id }); // Buscar al usuario por su ID
+        const nombre = comentario.nombre;
+        
 
-                // Guardar la respuesta en MongoDB
-                const respuestaGuardada = await nuevaRespuesta.save();
+        const nuevaRespuesta = {
+            usuario_id: usuario_id,
+            nombre: nombre,
+            respuesta: respuesta // Asegúrate de que este campo esté correctamente asignado
+        };
 
-                // Actualizar el comentario con la referencia a la nueva respuesta
-                await Comentario.findByIdAndUpdate(
-                    comentario_id,
-                    { $push: { respuestas: respuestaGuardada._id } },
-                    { new: true, useFindAndModify: false }
-                );
+        console.log('Datos rec:', nuevaRespuesta);
 
-                res.status(201).json(respuestaGuardada);
-            } catch (error) {
-                console.error(error); // Para ver detalles en la consola
-                res.status(500).json({ error: 'Error al guardar la respuesta', message: error.message });
-            }
-        });
+       // Actualizar el comentario añadiendo la nueva respuesta
+        const comentarioActualizado = await Comentario.findOneAndUpdate(
+            { comentario_id },  // Busca el comentario por comentario_id
+            { $push: { respuestas: nuevaRespuesta } },  // Agregar la respuesta al array de respuestas
+            { new: true }  // Devuelve el comentario actualizado
+        );
+
+        console.log('Comentario actualizado:', comentarioActualizado);
+        console.log('Respuesta actualizada:', comentarioActualizado.respuestas[0]);
+
+                        
+        
+        // Verificar si el comentario existe
+        if (!comentario) {
+            console.log('Error: Comentario no encontrado con ID:', comentario_id);
+            return res.status(404).json({ message: 'Comentario no encontrado' });
+        }
+
+        console.log('Comentario actualizado exitosamente:', comentario);
+
+        // Respuesta exitosa devolviendo el ID del comentario
+       
+        res.status(201).json(nuevaRespuesta); 
+        console.log("respuesta:", comentario.respuestas);
+      } catch (error) {
+         // Log de error con detalles
+         console.error('Error al agregar la respuesta:', error);
+         res.status(500).json({ message: 'Error al agregar la respuesta' });
+     }
+    });
+
+
+  
 
 
 
