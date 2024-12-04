@@ -201,40 +201,67 @@ router.post('/responder', async (req, res) => {
         
         
         const comentario = await Comentario.findOne({ comentario_id: comentario_id }); // Buscar al usuario por su ID
-        const nombre = comentario.nombre;
         
+            
+    // Buscar en las tres colecciones de usuarios
+    const [atleta, entrenador, administrador] = await Promise.all([
+        Atleta.findById(usuario_id),
+        Entrenador.findById(usuario_id),
+        Administrador.findById(usuario_id)
+    ]);
 
-        const nuevaRespuesta = {
-            usuario_id: usuario_id,
-            nombre: nombre,
-            respuesta: respuesta // Asegúrate de que este campo esté correctamente asignado
-        };
+    // Determinar el tipo de usuario y su nombre
+    let nombre = '';
+    let tipoUsuario = '';
 
-        console.log('Datos rec:', nuevaRespuesta);
+    if (atleta) {
+        nombre = atleta.nombre;
+        tipoUsuario = 'Atleta';
+    } else if (entrenador) {
+        nombre = entrenador.nombre;
+        tipoUsuario = 'Entrenador';
+    } else if (administrador) {
+        nombre = administrador.nombre;
+        tipoUsuario = 'Administrador';
+    } else {
+        return res.status(404).json({ error: 'Usuario no encontrado' });
+    }
 
-       // Actualizar el comentario añadiendo la nueva respuesta
-        const comentarioActualizado = await Comentario.findOneAndUpdate(
-            { comentario_id },  // Busca el comentario por comentario_id
-            { $push: { respuestas: nuevaRespuesta } },  // Agregar la respuesta al array de respuestas
-            { new: true }  // Devuelve el comentario actualizado
-        );
 
-        console.log('Comentario actualizado:', comentarioActualizado);
-        console.log('Respuesta actualizada:', comentarioActualizado.respuestas[0]);
+   
+    const nuevaRespuesta = {
+        usuario_id: usuario_id,
+        nombre: nombre,
+        respuesta: respuesta, // Asegúrate de que este campo esté correctamente asignado
+        comentario_id: comentario_id
+    };
+    
+    console.log("Datos recibidos:", nuevaRespuesta);
+    
+    // Actualizar el comentario añadiendo la nueva respuesta
+    const comentarioActualizado = await Comentario.findOneAndUpdate(
+        { comentario_id }, // Busca el comentario por comentario_id
+        { $push: { respuestas: nuevaRespuesta } }, // Agregar la respuesta al array de respuestas
+        { new: true } // Devuelve el comentario actualizado
+    );
+    
+    console.log("Comentario actualizado:", comentarioActualizado);
+    
+    // Verificar si el comentario existe
+    if (!comentarioActualizado) {
+        console.log("Error: Comentario no encontrado con ID:", comentario_id);
+        return res.status(404).json({ message: "Comentario no encontrado" });
+    }
+    
+    // Recupera la última respuesta insertada (la última en el array)
+    const ultimaRespuesta = comentarioActualizado.respuestas[comentarioActualizado.respuestas.length - 1];
 
-                        
-        
-        // Verificar si el comentario existe
-        if (!comentario) {
-            console.log('Error: Comentario no encontrado con ID:', comentario_id);
-            return res.status(404).json({ message: 'Comentario no encontrado' });
-        }
-
-        console.log('Comentario actualizado exitosamente:', comentario);
-
-        // Respuesta exitosa devolviendo el ID del comentario
-       
-        res.status(201).json(nuevaRespuesta); 
+    // Devolver la respuesta completa con su ID
+    res.status(201).json({
+        respuesta_id: ultimaRespuesta._id, // El ID generado automáticamente
+        ...nuevaRespuesta // Los datos de la nueva respuesta
+    });
+    
         console.log("respuesta:", comentario.respuestas);
       } catch (error) {
          // Log de error con detalles
@@ -245,6 +272,41 @@ router.post('/responder', async (req, res) => {
 
 
   
+// Eliminar una respuesta de un comentario
+router.delete('/eliminarRespuesta/:comentarioId/:respuestaId', async (req, res) => {
+    const { comentarioId, respuestaId } = req.params; // Obtener IDs del comentario y la respuesta
+    console.log(`Eliminando respuesta con ID: ${respuestaId} del comentario con ID: ${comentarioId}`);
+
+    try {
+        // Buscar el comentario por ID
+        const comentario = await Comentario.findOne({ comentario_id: comentarioId.trim() });
+
+        if (!comentario) {
+            return res.status(404).json({ error: "Comentario no encontrado" });
+        }
+
+        // Filtrar las respuestas para eliminar la respuesta deseada
+        const respuestaIndex = comentario.respuestas.findIndex(
+            (respuesta) => respuesta._id.toString() === respuestaId
+        );
+
+        if (respuestaIndex === -1) {
+            return res.status(404).json({ error: "Respuesta no encontrada" });
+        }
+
+        // Eliminar la respuesta
+        comentario.respuestas.splice(respuestaIndex, 1);
+        await comentario.save(); // Guardar los cambios en la base de datos
+
+        console.log("Respuesta eliminada exitosamente.");
+        return res.status(200).json({ message: "Respuesta eliminada exitosamente" });
+
+    } catch (err) {
+        console.error("Error al eliminar la respuesta:", err);
+        return res.status(500).json({ error: "Error interno al eliminar la respuesta" });
+    }
+});
+
 
 
 
