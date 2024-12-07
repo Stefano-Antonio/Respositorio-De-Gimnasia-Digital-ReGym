@@ -2,70 +2,69 @@ const express = require('express');
 const router = express.Router();
 const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
-const { Comentario, Respuesta } = require('../Models/modelosComentarios');
+const { Comentario} = require('../Models/modelosComentarios');
 const { Atleta, Entrenador, Administrador } = require('../Models/modelosUsuarios');
-const { ObjectId } = mongoose.Types; // Asegúrate de tener acceso a ObjectId
 
 router.use(bodyParser.json());
 
-        // Ruta para crear un comentario
-        router.post('/', async (req, res) => {
-            const {  usuario_id, nombre, comentario, movimiento, comentario_id} = req.body;
-        
-            try {
-                // Validar usuario_id
-                if (!mongoose.Types.ObjectId.isValid(usuario_id)) {
-                    return res.status(400).json({ error: 'ID de usuario no válido' });
-                }
-        
-                // Convertir usuario_id a ObjectId
-                const usuarioObjectId = new mongoose.Types.ObjectId(usuario_id);
+// Ruta para crear un comentario
+router.post('/', async (req, res) => {
+    const {  usuario_id, nombre, comentario, movimiento, comentario_id} = req.body;
 
-                // Verificar si el usuario existe en alguna de las colecciones
-                let usuario = await Atleta.findById(usuarioObjectId) ||
-                              await Entrenador.findById(usuarioObjectId) ||
-                              await Administrador.findById(usuarioObjectId);
-        
-                if (!usuario) {
-                    return res.status(404).json({ error: 'Usuario no encontrado' });
-                }
-        
-                // Crear un nuevo comentario
-                const nuevoComentario = new Comentario({
-                    comentario_id,
-                    usuario_id: usuarioObjectId,
-                    nombre,
-                    comentario,
-                    movimiento,  // movimiento_id como string
-                    num_likes: 0,
-                    respuestas: []
-                });
-        
-                // Guardar el comentario en la base de datos
-                const comentarioGuardado = await nuevoComentario.save();
-                // Devuelves el comentario guardado con su _id (comentario_id)
-                return res.status(201).json({
-                    mensaje: "Comentario guardado exitosamente",
-                    comentarioId: nuevoComentario._id.toString(), // Asegúrate de que este campo esté siendo enviado
-                    num_likes: nuevoComentario.num_likes,
-                    comentario: comentarioGuardado
-                });
-                
-            
-        
-                
-            } catch (error) {
-                console.error(error);
-                return res.status(500).json({ error: "Error al guardar el comentario", message: error.message });
-            }
+    try {
+        // Validar usuario_id
+        if (!mongoose.Types.ObjectId.isValid(usuario_id)) {
+            return res.status(400).json({ error: 'ID de usuario no válido' });
+        }
+
+        // Convertir usuario_id a ObjectId
+        const usuarioObjectId = new mongoose.Types.ObjectId(usuario_id);
+
+        // Verificar si el usuario existe en alguna de las colecciones
+        let usuario = await Atleta.findById(usuarioObjectId) ||
+                        await Entrenador.findById(usuarioObjectId) ||
+                        await Administrador.findById(usuarioObjectId);
+
+        if (!usuario) {
+            return res.status(404).json({ error: 'Usuario no encontrado' });
+        }
+
+        // Crear un nuevo comentario
+        const nuevoComentario = new Comentario({
+            comentario_id,
+            usuario_id: usuarioObjectId,
+            nombre,
+            comentario,
+            movimiento,  
+            num_likes: 0,
+            respuestas: []
         });
 
-        // Ruta para obtener comentarios por movimiento_id
+        // Guardar el comentario en la base de datos
+        const comentarioGuardado = await nuevoComentario.save();
+
+        // Devuelves el comentario guardado con su _id (comentario_id)
+        return res.status(201).json({
+            mensaje: "Comentario guardado exitosamente",
+            comentarioId: nuevoComentario._id.toString(), 
+            num_likes: nuevoComentario.num_likes,
+            comentario: comentarioGuardado
+        });
+        
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ error: "Error al guardar el comentario", message: error.message });
+    }
+});
+
+// Ruta para obtener comentarios por movimiento_id
 router.get('/:movimiento', async (req, res) => {
-            const { movimiento } = req.params;
+        const { movimiento } = req.params;
+
         // Agregar log para verificar los valores recibidos console.
         console.log('Recibido movimiento_id:', movimiento);
         try {
+
             console.log('Consultando base de datos para movimiento:', movimiento);
             const comentarios = await Comentario.find({ movimiento });
             
@@ -87,7 +86,6 @@ router.get('/:movimiento', async (req, res) => {
 router.post('/likeComentario', async (req, res) => {
     const { comentarioId, usuarioId, isLiked } = req.body;
 
-    
     try {
         console.log("Procesando like para comentario:", req.body);
 
@@ -111,12 +109,14 @@ router.post('/likeComentario', async (req, res) => {
             comentario.liked_by.push(usuarioId);
             console.log("Nuevo like agregado. Total likes:", comentario.num_likes,"datos:",usuarioYaDioLike);
             
-        } else if (usuarioYaDioLike&&isLiked) {
+        } 
+        else if (usuarioYaDioLike&&isLiked) {
             // Si se elimina el like
             comentario.num_likes -= 1;
             comentario.liked_by = comentario.liked_by.filter(id => id.toString() !== usuarioId.toString());
             console.log("Like eliminado. Total likes:", comentario.num_likes,"datos:",usuarioYaDioLike);
-        } else {
+        } 
+        else {
             // Manejo de inconsistencias
             console.warn("Estado inconsistente detectado. isLiked:", isLiked, "usuarioYaDioLike:", usuarioYaDioLike);
         }
@@ -124,13 +124,14 @@ router.post('/likeComentario', async (req, res) => {
         // Guardar los cambios
         await comentario.save({ validateModifiedOnly: true });
         console.warn("RESPUESTA:. likes:", comentario.num_likes, "usuarioYaDioLike:", !usuarioYaDioLike, "isLiked:", isLiked);
+        
         // Responder con el estado actualizado
         return res.status(200).json({
             num_likes: comentario.num_likes,
             isLiked: !usuarioYaDioLike,
             liked_by: []
         });
-        
+
     } catch (err) {
         console.error("Error al manejar el like:", err);
         res.status(500).json({ error: "Error al procesar el like" });
@@ -182,9 +183,9 @@ router.put('/editarComentario/:comentarioId', async (req, res) => {
         // Actualizar el texto del comentario
         comentario.comentario = nuevoComentario;
         await comentario.save();
-
         console.log("Comentario editado exitosamente.");
         return res.status(200).json({ message: "Comentario editado exitosamente" });
+
     } catch (err) {
         console.error("Error al editar el comentario:", err);
         return res.status(500).json({ error: "Error al editar el comentario" });
@@ -196,13 +197,9 @@ router.put('/editarComentario/:comentarioId', async (req, res) => {
 router.post('/responder', async (req, res) => {
     
     try {
-
         const { usuario_id, respuesta, comentario_id } = req.body; // Obtener datos desde el cuerpo de la solicitud
-        
-        
         const comentario = await Comentario.findOne({ comentario_id: comentario_id }); // Buscar al usuario por su ID
         
-            
     // Buscar en las tres colecciones de usuarios
     const [atleta, entrenador, administrador] = await Promise.all([
         Atleta.findById(usuario_id),
@@ -217,18 +214,19 @@ router.post('/responder', async (req, res) => {
     if (atleta) {
         nombre = atleta.nombre;
         tipoUsuario = 'Atleta';
-    } else if (entrenador) {
+    } 
+    else if (entrenador) {
         nombre = entrenador.nombre;
         tipoUsuario = 'Entrenador';
-    } else if (administrador) {
+    } 
+    else if (administrador) {
         nombre = administrador.nombre;
         tipoUsuario = 'Administrador';
-    } else {
+    } 
+    else {
         return res.status(404).json({ error: 'Usuario no encontrado' });
     }
 
-
-   
     const nuevaRespuesta = {
         usuario_id: usuario_id,
         nombre: nombre,

@@ -5,7 +5,7 @@ const cors = require('cors');
 
 const RoutesUsuarios = require('./ruotes/routesUsuarios');
 const RoutesComentarios = require('./ruotes/routesComentarios');
-const RoutesAparatos = require('./ruotes/routesAparatos');
+const RoutesAdministrador = require('./ruotes/routesAdministrador');
 
 const app = express();
 
@@ -19,17 +19,12 @@ const app = express();
         app.use(cors());
 
 // Usar rutas
-        // Usar rutas 
         app.use('/api/usuarios', RoutesUsuarios); 
-        // Rutas de usuarios en '/api/usuarios' 
         app.use('/api/comentarios', RoutesComentarios); 
-        // Rutas de comentarios en '/api/comentarios' 
-        //app.use('/api/aparatos', RoutesAparatos); 
-        // Rutas de aparatos en '/api/aparatos'
-
+        app.use('/api/administrador', RoutesAdministrador);
 // Inicializar el servidor
         const port = 4000;
-       // app.listen(port, '0.0.0.0',() => {
+        // app.listen(port, '0.0.0.0',() => {      // emulador
         app.listen(port, () => {
             console.log(`Servidor escuchando en el puerto ${port}`);
         });

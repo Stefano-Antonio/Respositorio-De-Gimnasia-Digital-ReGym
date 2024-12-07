@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 
-//Comentarios
+//Comentario
 const comentario = new mongoose.Schema({
   comentario_id: { type: String, required: true ,unique: true},
   usuario_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Usuario', required: true },
@@ -15,9 +15,6 @@ const comentario = new mongoose.Schema({
     respuesta: { type: String, required: true }
   }]
 });
-
-
-
 
 //Modelos en moongose
 const Comentario = mongoose.model('Comentario', comentario);
