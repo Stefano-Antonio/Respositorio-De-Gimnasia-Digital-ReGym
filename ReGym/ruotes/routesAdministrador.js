@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { Atleta, Entrenador, Administrador } = require('../Models/modelosUsuarios');
+const { Comentario} = require('../Models/modelosComentarios');
 
 // Ruta para obtener todos los usuarios
 router.get('/usuarios', async (req, res) => {
@@ -10,10 +11,29 @@ router.get('/usuarios', async (req, res) => {
     const atletas = await Atleta.find();
 
     const todosLosUsuarios = [
-      ...administradores.map(user => ({ ...user.toObject(), tipo: 'Administrador' })),
-      ...entrenadores.map(user => ({ ...user.toObject(), tipo: 'Entrenador' })),
-      ...atletas.map(user => ({ ...user.toObject(), tipo: 'Atleta' })),
-    ];
+        ...administradores.map(user => ({ 
+          id: user._id,  // Incluimos el _id de cada modelo
+          nombre: user.nombre,
+          correo: user.correo,
+          matricula: user.matricula,
+          password: user.password  // Indicamos el tipo de usuario
+        })),
+        ...entrenadores.map(user => ({ 
+          id: user._id,  // Incluimos el _id de cada modelo
+          nombre: user.nombre,
+          correo: user.correo,
+          matricula: user.matricula,
+          password: user.password 
+        })),
+        ...atletas.map(user => ({ 
+          id: user._id,  // Incluimos el _id de cada modelo
+          nombre: user.nombre,
+          correo: user.correo,
+          matricula: user.matricula,
+          password: user.password 
+        })),
+     ];
+     
 
     res.status(200).json(todosLosUsuarios);
   } catch (error) {
@@ -84,6 +104,37 @@ router.put('/usuarios/editar/:matriculaAux', async (req, res) => {
     console.log("Usuario actualizado:", usuarioActualizado);
 });
 
+
+// Ruta para obtener comentarios por movimiento_id
+router.get('/comentarios/:movimiento/:usuarioId', async (req, res) => {
+    const { movimiento, usuarioId } = req.params; // Extrae los parámetros de la URL
+    
+    // Verifica que el movimiento sea válido
+    const letrasValidas = ['P', 'S', 'B', 'V'];
+    if (!letrasValidas.includes(movimiento)) {
+        return res.status(400).json({ error: 'La letra del movimiento no es válida. Debe ser P, S, B o V.' });
+    }
+
+    try {
+        console.log('Consultando base de datos para la letra inicial del movimiento:', movimiento, 'y usuarioId:', usuarioId);
+        
+        // Filtrar por la primera letra del campo 'movimiento' y el usuarioId
+        const comentarios = await Comentario.find({ 
+            movimiento: { $regex: `^${movimiento}`, $options: 'i' }, // Filtra por primera letra (no distingue mayúsculas/minúsculas)
+            usuario_id: usuarioId // Filtra por usuarioId
+        });
+
+        if (!comentarios || comentarios.length === 0) {
+            return res.status(404).json({ error: 'No se encontraron comentarios para este movimiento y usuario' });
+        }
+
+        console.log('Comentarios encontrados: ', comentarios.length);
+        return res.status(200).json(comentarios);
+    } catch (error) {
+        console.error("Error al obtener los comentarios:", error);
+        return res.status(500).json({ error: "Error al obtener los comentarios", message: error.message });
+    }
+});
 
 /*
 // Listar comentarios
