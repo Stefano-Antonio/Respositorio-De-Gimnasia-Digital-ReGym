@@ -67,15 +67,59 @@ router.get('/:movimiento', async (req, res) => {
 
             console.log('Consultando base de datos para movimiento:', movimiento);
             const comentarios = await Comentario.find({ movimiento });
-            
+
             console.log('Comentarios encontrados:', comentarios);
+            console.log('Respuestas:', comentarios.respuesta)
 
             if (!comentarios || comentarios.length === 0) {
                 return res.status(404).json({ error: 'No se encontraron comentarios para este movimiento' });
             }
+            // Construir la respuesta incluyendo el _id de cada respuesta
+            const response = comentarios.map(comentario => ({
+                comentario_id: comentario.comentario_id,
+                usuario_id: comentario.usuario_id,
+                nombre: comentario.nombre,
+                comentario: comentario.comentario,
+                movimiento: comentario.movimiento,
+                num_likes: comentario.num_likes,
+                liked_by: comentario.liked_by,
+                respuestas: comentario.respuestas.map(respuesta => ({
+                    respuesta_id: respuesta.respuesta_id, // Incluye el _id generado por MongoDB
+                    usuario_id: respuesta.usuario_id,
+                    nombre: respuesta.nombre,
+                    respuesta: respuesta.respuesta
+                }))
+            }));
 
-            console.log('Comentarios encontrados: ', comentarios.length);
-            return res.status(200).json(comentarios);
+            console.log('Comentarios encontrados: ', response.length);
+            // Itera sobre los comentarios y sus respuestas
+            console.log('Comentarios encontrados:', response.length);
+            response.forEach((comentario, index) => {
+            console.log(`Comentario ${index + 1}:`);
+            console.log(`- ID: ${comentario.comentario_id}`);
+            console.log(`- Usuario ID: ${comentario.usuario_id}`);
+            console.log(`- Nombre: ${comentario.nombre}`);
+            console.log(`- Comentario: ${comentario.comentario}`);
+            console.log(`- Número de Likes: ${comentario.num_likes}`);
+            console.log(`- Respuestas:`);
+
+            if (comentario.respuestas.length > 0) {
+                comentario.respuestas.forEach((respuesta, idx) => {
+                    console.log(`  Respuesta ${idx + 1}:`);
+                    console.log(`  - Respuesta : ${respuesta.respuesta_id}`);
+                    console.log(`  - Usuario ID: ${respuesta.usuario_id}`);
+                    console.log(`  - Nombre: ${respuesta.nombre}`);
+                    console.log(`  - Respuesta: ${respuesta.respuesta}`);
+                });
+                
+            } else {
+                console.log('  - No hay respuestas.');
+            }
+            });
+            return res.status(200).json(response);
+            
+            
+
         } catch (error) {
             console.error("Error al obtener los comentarios:", error);
             return res.status(500).json({ error: "Error al obtener los comentarios", message: error.message });
@@ -228,6 +272,7 @@ router.post('/responder', async (req, res) => {
     }
 
     const nuevaRespuesta = {
+        respuesta_id: new mongoose.Types.ObjectId(),
         usuario_id: usuario_id,
         nombre: nombre,
         respuesta: respuesta, // Asegúrate de que este campo esté correctamente asignado
@@ -252,11 +297,10 @@ router.post('/responder', async (req, res) => {
     }
     
     // Recupera la última respuesta insertada (la última en el array)
-    const ultimaRespuesta = comentarioActualizado.respuestas[comentarioActualizado.respuestas.length - 1];
-
+    const ultimaRespuesta = nuevaRespuesta._id;
+    console.log("nuevaRespuesta:", nuevaRespuesta,"ultimaRespuestaId",nuevaRespuesta._id);
     // Devolver la respuesta completa con su ID
     res.status(201).json({
-        respuesta_id: ultimaRespuesta._id, // El ID generado automáticamente
         ...nuevaRespuesta // Los datos de la nueva respuesta
     });
     
@@ -268,27 +312,32 @@ router.post('/responder', async (req, res) => {
      }
     });
 
-
-  
 // Eliminar una respuesta de un comentario
 router.delete('/eliminarRespuesta/:comentarioId/:respuestaId', async (req, res) => {
     const { comentarioId, respuestaId } = req.params; // Obtener IDs del comentario y la respuesta
     console.log(`Eliminando respuesta con ID: ${respuestaId} del comentario con ID: ${comentarioId}`);
-
+        
+    // Buscar el comentario por comentario_id
+    const comentario = await Comentario.findOne({ comentario_id: comentarioId.trim() });
+        
     try {
-        // Buscar el comentario por ID
-        const comentario = await Comentario.findOne({ comentario_id: comentarioId.trim() });
 
         if (!comentario) {
+            console.error("Error al eliminar la respuesta: Comentario no encontrado",comentarioId);
             return res.status(404).json({ error: "Comentario no encontrado" });
         }
 
+        // Depuración: Verifica las respuestas y los IDs
+        console.log("Respuestas del comentario:", comentario.respuestas);
+
         // Filtrar las respuestas para eliminar la respuesta deseada
-        const respuestaIndex = comentario.respuestas.findIndex(
-            (respuesta) => respuesta._id.toString() === respuestaId
+        const respuestaIndex = comentario.respuestas.findIndex((respuesta) => 
+            // Compara como String si respuesta_id no es un ObjectId
+            respuesta.respuesta_id.toString() === respuestaId
         );
 
         if (respuestaIndex === -1) {
+            console.error("Error al eliminar la respuesta: Respuesta no encontrada");
             return res.status(404).json({ error: "Respuesta no encontrada" });
         }
 
@@ -297,7 +346,7 @@ router.delete('/eliminarRespuesta/:comentarioId/:respuestaId', async (req, res) 
         await comentario.save(); // Guardar los cambios en la base de datos
 
         console.log("Respuesta eliminada exitosamente.");
-        return res.status(200).json({ message: "Respuesta eliminada exitosamente" });
+        return res.status(200).json({ message: "Respuesta eliminada exitosamente"});
 
     } catch (err) {
         console.error("Error al eliminar la respuesta:", err);

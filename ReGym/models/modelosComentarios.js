@@ -10,7 +10,8 @@ const comentario = new mongoose.Schema({
   num_likes: { type: Number, default: 0 },
   liked_by: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Usuario' }], // Lista de usuarios que dieron like
   respuestas: [{ 
-    usuario_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Usuario', required: true, strict: true },
+    respuesta_id: { type: String, required: true ,unique: true},
+    usuario_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Usuario', required: true},
     nombre: { type: String, required: true },
     respuesta: { type: String, required: true }
   }]

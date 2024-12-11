@@ -43,8 +43,8 @@ router.get('/usuarios', async (req, res) => {
 
 
 // Ruta para eliminar usuario
-router.delete('/usuarios/eliminar/:matricula', async (req, res) => {
-    const { matricula } = req.params;
+router.delete('/usuarios/eliminar/:matricula/:usuarioId', async (req, res) => {
+    const { matricula, usuarioId } = req.params;
 
     try {
         const usuarioEliminado =
@@ -55,6 +55,9 @@ router.delete('/usuarios/eliminar/:matricula', async (req, res) => {
         if (!usuarioEliminado) {
             return res.status(404).json({ message: 'Usuario no encontrado' });
         }
+
+        // Eliminar los comentarios asociados al usuario
+        await Comentario.deleteMany({ usuario_id: usuarioId });
 
         res.status(200).json({ message: 'Usuario eliminado exitosamente' });
     } catch (error) {
@@ -136,73 +139,4 @@ router.get('/comentarios/:movimiento/:usuarioId', async (req, res) => {
     }
 });
 
-/*
-// Listar comentarios
-router.get('/comentarios', async (req, res) => {
-    try {
-        const comentarios = await Comentario.find().populate('usuario_id', 'nombre');
-        res.status(200).json(comentarios);
-    } catch (error) {
-        res.status(500).json({ message: 'Error al obtener comentarios', error });
-    }
-});
-
-// Editar comentario
-router.put('/comentarios/editar/:comentario_id', async (req, res) => {
-    const { comentario_id } = req.params;
-    const { comentario } = req.body;
-
-    try {
-        const comentarioActualizado = await Comentario.findOneAndUpdate(
-            { comentario_id },
-            { comentario },
-            { new: true }
-        );
-
-        if (!comentarioActualizado) {
-            return res.status(404).json({ message: 'Comentario no encontrado' });
-        }
-
-        res.status(200).json({ message: 'Comentario actualizado exitosamente', comentarioActualizado });
-    } catch (error) {
-        res.status(500).json({ message: 'Error al editar comentario', error });
-    }
-});
-
-// Eliminar comentario
-router.delete('/comentarios/eliminar/:comentario_id', async (req, res) => {
-    const { comentario_id } = req.params;
-
-    try {
-        const comentarioEliminado = await Comentario.findOneAndDelete({ comentario_id });
-
-        if (!comentarioEliminado) {
-            return res.status(404).json({ message: 'Comentario no encontrado' });
-        }
-
-        res.status(200).json({ message: 'Comentario eliminado exitosamente' });
-    } catch (error) {
-        res.status(500).json({ message: 'Error al eliminar comentario', error });
-    }
-});
-// Verificar matrícula existente
-router.get('/usuarios/verificar/:matricula', async (req, res) => {
-    const { matricula } = req.params;
-
-    try {
-        const usuario =
-            (await Atleta.findOne({ matricula })) ||
-            (await Entrenador.findOne({ matricula })) ||
-            (await Administrador.findOne({ matricula }));
-
-        if (!usuario) {
-            return res.status(404).json({ message: 'Matrícula no encontrada' });
-        }
-
-        res.status(200).json({ message: 'Matrícula válida', usuario });
-    } catch (error) {
-        res.status(500).json({ message: 'Error al verificar matrícula', error });
-    }
-});
-*/ 
 module.exports = router; // Exportar router para utilizarlo en server.js
