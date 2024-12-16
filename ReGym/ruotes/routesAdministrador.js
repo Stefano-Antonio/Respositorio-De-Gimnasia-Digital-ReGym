@@ -3,6 +3,7 @@ const router = express.Router();
 const { Atleta, Entrenador, Administrador } = require('../Models/modelosUsuarios')
 const { Comentario} = require('../Models/modelosComentarios');
 const { MatriculasCompartidas} = require('../Models/modelosUsuarios')
+const mongoose = require('mongoose'); 
 
 // Ruta para obtener todos los usuarios
 router.get('/usuarios', async (req, res) => {
@@ -47,24 +48,48 @@ router.get('/usuarios', async (req, res) => {
 router.delete('/usuarios/eliminar/:matricula/:usuarioId', async (req, res) => {
     const { matricula, usuarioId } = req.params;
 
-    try {
-        const usuarioEliminado =
-            (await Atleta.findOneAndDelete({ matricula })) ||
-            (await Entrenador.findOneAndDelete({ matricula })) ||
-            (await Administrador.findOneAndDelete({ matricula }));
+    console.log("Eliminando usuario:", matricula, usuarioId);
 
-        if (!usuarioEliminado) {
+    try {
+        // Validar el formato del usuarioId
+        if (!mongoose.Types.ObjectId.isValid(usuarioId)) {
+            return res.status(400).json({ message: 'ID de usuario no válido' });
+        }
+
+        const atletaEncontrado = await Atleta.findOne({ matricula });
+
+        const entrenadorEncontrado = await Entrenador.findOne({ matricula });
+
+        const administradorEncontrado = await Administrador.findOne({ matricula });
+
+        if (!atletaEncontrado && !entrenadorEncontrado && !administradorEncontrado) {
+            console.log('Usuario no encontrado');
             return res.status(404).json({ message: 'Usuario no encontrado' });
         }
 
-        // Eliminar los comentarios asociados al usuario
-        await Comentario.deleteMany({ usuario_id: usuarioId });
+        // Luego eliminas según corresponda
+        if (atletaEncontrado) await Atleta.findOneAndDelete({ matricula });
+        if (entrenadorEncontrado) await Entrenador.findOneAndDelete({ matricula });
+        if (administradorEncontrado) await Administrador.findOneAndDelete({ matricula });
+
+        // Eliminar comentarios asociados al usuario
+        await Comentario.deleteMany({ usuario_id: new mongoose.Types.ObjectId(usuarioId) });
+        console.log('Comentarios eliminados');
+
+        // Eliminar respuestas asociadas al usuario
+        await Comentario.updateMany(
+            { 'respuestas.usuario_id': new mongoose.Types.ObjectId(usuarioId) },
+            { $pull: { respuestas: { usuario_id: new mongoose.Types.ObjectId(usuarioId) } } }
+        );
+        console.log('Respuestas eliminadas');
 
         res.status(200).json({ message: 'Usuario eliminado exitosamente' });
     } catch (error) {
+        console.error('Error al eliminar usuario:', error);
         res.status(500).json({ message: 'Error al eliminar usuario', error });
     }
 });
+
 
 // Ruta para editar usuarios
 router.put('/usuarios/editar/:matriculaAux/:nuevaMatricula/:nuevoNombre', async (req, res) => {
@@ -251,5 +276,29 @@ router.delete('/eliminarMatricula/:matricula', async (req, res) => {
     return res.status(500).json({ mensaje: 'Error interno en el servidor.' });
   }
 });
+
+// Ruta para obtener los comentarios con usuario eliminado
+router.get('/comentarioseliminados', async (req, res) => {
+    try {
+        // Obtener todos los comentarios y hacer populate de usuario_id
+        const comentarios = await Comentario.find().populate('usuario_id');
+        
+        // Si el usuario no existe o está eliminado, asignar un valor predeterminado
+        const comentariosConUsuarioEliminado = comentarios.map(comentario => {
+            if (comentario.usuario_id && comentario.usuario_id.estado === 'eliminado') {
+                comentario.usuario_id = { nombre: 'Usuario Eliminado', correo: 'N/A' };
+            }
+            return comentario;
+        });
+
+        // Responder con los comentarios
+        res.status(200).json(comentariosConUsuarioEliminado);
+    } catch (error) {
+        console.error('Error al obtener los comentarios:', error);
+        res.status(500).json({ mensaje: 'Error al obtener los comentarios', error });
+    }
+});
+
+module.exports = router;
 
 module.exports = router;

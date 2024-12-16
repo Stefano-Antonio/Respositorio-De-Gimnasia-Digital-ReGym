@@ -11,8 +11,11 @@ const comentario = new mongoose.Schema({
   num_likes: { type: Number, default: 0 },
   liked_by: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Usuario' }],
   respuestas: [{ 
-    respuesta_id: { type: String, required: true, unique: true, default: () => new mongoose.Types.ObjectId().toString()},
-    usuario_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Usuario', required: true},
+    respuesta_id: {type: String,required: true,
+      default: function() { 
+        return new mongoose.Types.ObjectId().toString(); 
+      }},
+    usuario_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Usuario', required: true },
     nombre: { type: String, required: true },
     respuesta: { type: String, required: true }
   }]

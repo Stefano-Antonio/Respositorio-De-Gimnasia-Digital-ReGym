@@ -24,7 +24,7 @@ const app = express();
         app.use('/api/administrador', RoutesAdministrador);
 // Inicializar el servidor
         const port = 4000;
-       //  app.listen(port, '0.0.0.0',() => {      // emulador
+        //app.listen(port, '0.0.0.0',() => {      // emulador
         app.listen(port, () => {
             console.log(`Servidor escuchando en el puerto ${port}`);
         });
