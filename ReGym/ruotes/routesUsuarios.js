@@ -2,79 +2,101 @@ const express = require('express');
 const router = express.Router();
 const bodyParser = require('body-parser');
 const { Atleta, Entrenador, Administrador } = require('../Models/modelosUsuarios');
-
-router.use(bodyParser.json());
-
-//Ruta para registrar
+const { MatriculasCompartidas} = require('../Models/modelosUsuarios')
+// Ruta para registrar
 router.post('/registrar', async (req, res) => {
-    const { id, nombre, correo, password, matricula } = req.body;
+    const { id, nombre, correo, contraseña, matricula } = req.body;
 
-    // Determina el modelo de usuario en función de la matrícula
-    let User; 
-    if (matricula.startsWith('U')) {
-        User = Atleta;
-    } 
-    else if (matricula.startsWith('E')) {
-        User = Entrenador;
-    } 
-    else if (matricula.startsWith('A')) {
-        User = Administrador;
-    } 
-    else {
-        return res.status(400).json({ mensaje: "Tipo de usuario desconocido" });
-    }
-    
-    // Crear y guardar el usuario en la colección correspondiente
-const nuevoUsuario = new User({ nombre, correo, password, matricula });
+    // Verificar si la matrícula está en la lista de matrículas disponibles
+    try {
+        const matriculas = await MatriculasCompartidas.findOne();
+        if (!matriculas || !matriculas.matriculas || matriculas.matriculas.length === 0) {
+            return res.status(400).json({ mensaje: "No se encuentran matrículas disponibles." });
+        }
 
-nuevoUsuario.save()
+        console.log("Usuario:", req.body);
 
-    if(nuevoUsuario){
-        // Aquí puedes acceder al _id generado automáticamente por MongoDB
-        console.log(nuevoUsuario);
+        // Comprobar si la matrícula ya está en la lista de matrículas disponibles
+        if (!matriculas.matriculas.includes(matricula)) {
+            return res.status(400).json({ mensaje: "La matrícula no está disponible." });
+        }
+
+        // Determinar el modelo de usuario en función de la matrícula
+        let User;
+        switch (true) {
+            case matricula.startsWith('U'):
+                User = Atleta;
+                break;
+            case matricula.startsWith('E'):
+                User = Entrenador;
+                break;
+            case matricula.startsWith('A'):
+                User = Administrador;
+                break;
+            default:
+                return res.status(400).json({ mensaje: "Tipo de usuario desconocido" });
+        }
+
+        // Crear y guardar el usuario en la colección correspondiente
+        const nuevoUsuario = new User({ nombre, correo, contraseña, matricula });
+
+        await nuevoUsuario.save();
+
+        // Eliminar la matrícula de la lista de disponibles
+        const matriculaIndex = matriculas.matriculas.indexOf(matricula);
+        if (matriculaIndex > -1) {
+            matriculas.matriculas.splice(matriculaIndex, 1); // Eliminar la matrícula de la lista
+        }
+
+        // Guardar la lista de matrículas actualizada en la base de datos
+        await matriculas.save();  // Guardar la lista actualizada
+
+        // Responder con el usuario creado
         res.status(201).json({
-                id: nuevoUsuario._id, // Renombrar _id a id
-                nombre: nuevoUsuario.nombre,
-                correo: nuevoUsuario.correo,
-                matricula: nuevoUsuario.matricula,
-                password: nuevoUsuario.password
+            id: nuevoUsuario._id,  // Renombrar _id a id
+            nombre: nuevoUsuario.nombre,
+            correo: nuevoUsuario.correo,
+            matricula: nuevoUsuario.matricula
         });
-        
+
         console.log("Respuesta enviada:", {
             id: nuevoUsuario._id,
             nombre: nuevoUsuario.nombre,
             correo: nuevoUsuario.correo,
-            matricula: nuevoUsuario.matricula,
-            password: nuevoUsuario.password
+            matricula: nuevoUsuario.matricula
         });
 
-        console.log(res.usuario);
-    }else{
+    } catch (error) {
         console.error("Error al guardar el usuario:", error);
         res.status(500).json({ mensaje: "Error al guardar el usuario", error });
     }
 });
+
+
+
 //Ruta para verificar correo y contraseña para inicio de sesion
 router.post('/iniciarSesion', async (req, res) => {
-    const { correo, password, nombre } = req.body;
+    const { correo, contraseña, nombre } = req.body;
+    console.log("Usuario:", req.body);
 
     try {
 
         // Intentar encontrar al usuario en la colección de Atletas
-        let usuario = await Atleta.findOne({ correo: correo, password: password });
+        let usuario = await Atleta.findOne({ correo: correo, contraseña: contraseña });
         if (usuario) {
             return res.status(200).json({ mensaje: "Inicio de sesión exitoso", tipoUsuario: "atleta", usuario });
         }
 
         // Intentar encontrar al usuario en la colección de Entrenadores
-        usuario = await Entrenador.findOne({ correo: correo, password: password });
+        usuario = await Entrenador.findOne({ correo: correo, contraseña: contraseña });
         if (usuario) {
             return res.status(200).json({ mensaje: "Inicio de sesión exitoso", tipoUsuario: "entrenador", usuario });
     
         }
 
         // Intentar encontrar al usuario en la colección de Administradores
-        usuario = await Administrador.findOne({ correo: correo, password: password });
+        usuario = await Administrador.findOne({ correo: correo, contraseña: contraseña });
+        console.log("adm",correo, contraseña );
         if (usuario) {
             return res.status(200).json({ mensaje: "Inicio de sesión exitoso", tipoUsuario: "administrador", usuario });
       } 

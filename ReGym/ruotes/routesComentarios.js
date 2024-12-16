@@ -5,6 +5,7 @@ const bodyParser = require('body-parser');
 const { Comentario} = require('../Models/modelosComentarios');
 const { Atleta, Entrenador, Administrador } = require('../Models/modelosUsuarios');
 
+
 router.use(bodyParser.json());
 
 // Ruta para crear un comentario
@@ -209,8 +210,8 @@ router.delete('/eliminarComentario/:comentarioId', async (req, res) => {
 
 
 router.put('/editarComentario/:comentarioId', async (req, res) => {
-    const { comentarioId } = req.params; // Obtener el ID del comentario desde la URL
-    const { userId, nuevoComentario } = req.body; // Obtener el ID del usuario y el nuevo texto del comentario desde el cuerpo de la solicitud
+    const { comentarioId } = req.params;
+    const { userId, nuevoComentario } = req.body;
 
     try {
         console.log("Editando comentario con ID:", comentarioId, "por el usuario:", userId, "comentario nuevo:", nuevoComentario);
@@ -241,7 +242,7 @@ router.put('/editarComentario/:comentarioId', async (req, res) => {
 router.post('/responder', async (req, res) => {
     
     try {
-        const { usuario_id, respuesta, comentario_id } = req.body; // Obtener datos desde el cuerpo de la solicitud
+        const { usuario_id, respuesta, comentario_id } = req.body; 
         const comentario = await Comentario.findOne({ comentario_id: comentario_id }); // Buscar al usuario por su ID
         
     // Buscar en las tres colecciones de usuarios
@@ -275,7 +276,7 @@ router.post('/responder', async (req, res) => {
         respuesta_id: new mongoose.Types.ObjectId(),
         usuario_id: usuario_id,
         nombre: nombre,
-        respuesta: respuesta, // Asegúrate de que este campo esté correctamente asignado
+        respuesta: respuesta, 
         comentario_id: comentario_id
     };
     
