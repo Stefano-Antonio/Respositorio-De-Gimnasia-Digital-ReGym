@@ -25,7 +25,6 @@ const matriculascompartidas = new mongoose.Schema({
     matriculas: [{ type: String, required: true, unique: true }],
 });
 
-
 // Modelos en Mongoose
 const MatriculasCompartidas = mongoose.model('MatriculasCompartidas', matriculascompartidas);
 const Atleta = mongoose.model('Atleta', atleta);

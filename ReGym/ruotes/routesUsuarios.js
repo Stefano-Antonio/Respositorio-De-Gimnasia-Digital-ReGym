@@ -1,8 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const bodyParser = require('body-parser');
-const { Atleta, Entrenador, Administrador } = require('../Models/modelosUsuarios');
-const { MatriculasCompartidas} = require('../Models/modelosUsuarios')
+const { Atleta, Entrenador, Administrador } = require('../models/modelosUsuarios');
+const { MatriculasCompartidas} = require('../models/modelosUsuarios');
+
 // Ruta para registrar
 router.post('/registrar', async (req, res) => {
     const { id, nombre, correo, contraseña, matricula } = req.body;
@@ -72,9 +73,7 @@ router.post('/registrar', async (req, res) => {
     }
 });
 
-
-
-//Ruta para verificar correo y contraseña para inicio de sesion
+// Ruta para verificar correo y contraseña para inicio de sesion
 router.post('/iniciarSesion', async (req, res) => {
     const { correo, contraseña, nombre } = req.body;
     console.log("Usuario:", req.body);
@@ -114,7 +113,7 @@ router.post('/iniciarSesion', async (req, res) => {
     
 });
 
-//Ruta para recuperar contraseña:
+// Ruta para recuperar contraseña:
 router.post('/recuperarContrasena', async (req, res) => {
     const { correo } = req.body;
     console.log("Correo recibido:", correo); // Log para verificar el correo recibido

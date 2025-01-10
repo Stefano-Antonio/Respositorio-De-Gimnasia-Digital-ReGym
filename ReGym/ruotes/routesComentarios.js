@@ -2,9 +2,8 @@ const express = require('express');
 const router = express.Router();
 const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
-const { Comentario} = require('../Models/modelosComentarios');
-const { Atleta, Entrenador, Administrador } = require('../Models/modelosUsuarios');
-
+const { Comentario} = require('../models/modelosComentarios');
+const { Atleta, Entrenador, Administrador } = require('../models/modelosUsuarios');
 
 router.use(bodyParser.json());
 

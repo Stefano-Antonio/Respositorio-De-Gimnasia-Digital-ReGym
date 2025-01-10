@@ -22,6 +22,7 @@ const app = express();
         app.use('/api/usuarios', RoutesUsuarios); 
         app.use('/api/comentarios', RoutesComentarios); 
         app.use('/api/administrador', RoutesAdministrador);
+        
 // Inicializar el servidor
         const port = 4000;
         //app.listen(port, '0.0.0.0',() => {      // emulador

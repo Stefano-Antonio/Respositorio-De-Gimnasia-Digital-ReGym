@@ -1,8 +1,8 @@
 const express = require('express');
 const router = express.Router();
-const { Atleta, Entrenador, Administrador } = require('../Models/modelosUsuarios')
-const { Comentario} = require('../Models/modelosComentarios');
-const { MatriculasCompartidas} = require('../Models/modelosUsuarios')
+const { Atleta, Entrenador, Administrador } = require('../models/modelosUsuarios')
+const { Comentario} = require('../models/modelosComentarios');
+const { MatriculasCompartidas} = require('../models/modelosUsuarios')
 const mongoose = require('mongoose'); 
 
 // Ruta para obtener todos los usuarios
@@ -42,7 +42,6 @@ router.get('/usuarios', async (req, res) => {
     res.status(500).json({ error: 'Error al obtener los usuarios' });
   }
 });
-
 
 // Ruta para eliminar usuario
 router.delete('/usuarios/eliminar/:matricula/:usuarioId', async (req, res) => {
@@ -155,7 +154,6 @@ router.put('/usuarios/editar/:matriculaAux/:nuevaMatricula/:nuevoNombre', async 
         res.status(500).json({ message: "Error interno del servidor" });
     }
 });
-
 
 // Ruta para obtener comentarios por movimiento_id
 router.get('/comentarios/:movimiento/:usuarioId', async (req, res) => {
@@ -298,7 +296,5 @@ router.get('/comentarioseliminados', async (req, res) => {
         res.status(500).json({ mensaje: 'Error al obtener los comentarios', error });
     }
 });
-
-module.exports = router;
 
 module.exports = router;
