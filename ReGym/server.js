@@ -10,7 +10,7 @@ const RoutesAdministrador = require('./ruotes/routesAdministrador');
 const app = express();
 
 // Configuración de MongoDB
-        mongoose.connect('mongodb+srv://Stefano117:Mixbox360@regym.qgw2j.mongodb.net/?retryWrites=true&w=majority&appName=ReGym', {})
+        mongoose.connect('mongodb+srv://incufidezpabellondegimnasia:incufidez123@regym.idn6n.mongodb.net/', {})
             .then(() => console.log('Conectado a MongoDB'))
             .catch(err => console.error('Error conectando a MongoDB', err));
 
