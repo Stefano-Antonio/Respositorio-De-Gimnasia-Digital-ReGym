@@ -1,8 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const bodyParser = require('body-parser');
-const { Atleta, Entrenador, Administrador } = require('../models/modelosUsuarios');
-const { MatriculasCompartidas} = require('../models/modelosUsuarios');
+const { Atleta, Entrenador, Administrador, MatriculasCompartidas } = require('../models/modelosUsuarios');
+const nodemailer = require('nodemailer');
+require('dotenv').config();
+
 
 // Ruta para registrar
 router.post('/registrar', async (req, res) => {
@@ -113,40 +115,53 @@ router.post('/iniciarSesion', async (req, res) => {
     
 });
 
+
+
+
 // Ruta para recuperar contraseña:
 router.post('/recuperarContrasena', async (req, res) => {
+
+
     const { correo } = req.body;
     console.log("Correo recibido:", correo); // Log para verificar el correo recibido
 
     try {
+        // Buscar al usuario en los tres modelos (Atleta, Entrenador, Administrador)
+        let usuario = await Atleta.findOne({ correo });
+        if (!usuario) usuario = await Entrenador.findOne({ correo });
+        if (!usuario) usuario = await Administrador.findOne({ correo });
+
+        if (!usuario) {
+            return res.status(404).json({ error: 'Correo no encontrado' });
+        }
+
+        // Crear el transporte de correo
+        const transporter = nodemailer.createTransport({
+            service: 'gmail',
+            auth: {
+                user: process.env.GMAIL_USER, // Usa variable de entorno para evitar exposición de la contraseña
+                pass: process.env.GMAIL_PASSWORD, // Usa variable de entorno para evitar exposición de la contraseña
+            },
+        });
+
         
-        // Intentar encontrar al usuario en la colección de Atletas
-        let usuario = await Atleta.findOne({ correo: correo });
-        if (usuario) {
-            console.log("Usuario encontrado en Atletas:", usuario); // Log para verificar al usuario encontrado
-            return res.status(200).json({ mensaje: "Se encontro al usuario", tipoUsuario: "atleta", usuario: usuario.datos });
-        }
+        // Crear el mensaje
+        const mensaje = {
+            from: process.env.GMAIL_USER, // Remitente
+            to: correo, // Destinatario
+            subject: 'Recuperación de Contraseña',
+            text: `Hola ${usuario.nombre},\n\nTu contraseña es: ${usuario.contraseña}\n\nSaludos,\nEl equipo de soporte.`
+        };
 
-        // Intentar encontrar al usuario en la colección de Entrenadores
-        usuario = await Entrenador.findOne({ correo: correo});
-        if (usuario) {
-            console.log("Usuario encontrado en Entrenadores:", usuario);
-            return res.status(200).json({ mensaje: "Se encontro al usuario", tipoUsuario: "entrenador", usuario: usuario.datos });
-        }
+        // Enviar el correo y usar await para esperar la respuesta
+        const info = await transporter.sendMail(mensaje);
+        console.log('Correo enviado:', info.response);
 
-        // Intentar encontrar al usuario en la colección de Administradores
-        usuario = await Administrador.findOne({ correo: correo});
-        if (usuario) {
-            console.log("Usuario encontrado en Administradores:", usuario);
-            return res.status(200).json({ mensaje: "Se encontro al usuario", tipoUsuario: "administrador", usuario: usuario.datos });
-        }
+        return res.status(200).json({ message: 'Correo enviado con éxito' });
 
-        // Si el usuario no fue encontrado en ninguna colección
-        console.log("Usuario no encontrado en ninguna colección.");
-        return res.status(401).json({ mensaje: "Credenciales incorrectas" });
     } catch (error) {
-
-        return res.status(500).json({ mensaje: "Error en el servidor", error });
+        console.error('Error en la recuperación de contraseña:', error);
+        return res.status(500).json({ error: 'Error en la recuperación de contraseña' });
     }
 });
 

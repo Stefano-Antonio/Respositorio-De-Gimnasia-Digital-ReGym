@@ -49,6 +49,12 @@ router.delete('/usuarios/eliminar/:matricula/:usuarioId', async (req, res) => {
 
     console.log("Eliminando usuario:", matricula, usuarioId);
 
+    // Verificar si la matrícula es A001 y no permitir su eliminación
+    if (matricula === 'A001') {
+        console.log('Intento de eliminar la matrícula A001');  // Este log debe mostrarse si intentas eliminar A001
+        return res.status(400).json({ mensaje: 'No se puede eliminar la matrícula A001.' });
+    }
+    
     try {
         // Validar el formato del usuarioId
         if (!mongoose.Types.ObjectId.isValid(usuarioId)) {
@@ -207,8 +213,7 @@ router.get('/matriculas', async (req, res) => {
         res.status(500).json({ mensaje: 'Error al obtener las matrículas', error });
     }
 });
-
-// Ruta para agregar matriculas
+// Ruta para agregar matrículas
 router.post('/matriculas/:matricula', async (req, res) => {
     const { matricula } = req.params; // Extraer matrícula desde la URL
     console.log(`[LOG] Intentando agregar la matrícula: ${matricula}`);
@@ -219,6 +224,19 @@ router.post('/matriculas/:matricula', async (req, res) => {
     }
 
     try {
+        // Verificar si la matrícula ya está en uso por cualquier usuario
+        const [existeMatriculaEntrenador, existeMatriculaAtleta, existeMatriculaAdministrador] = await Promise.all([
+            Entrenador.findOne({ matricula }),
+            Atleta.findOne({ matricula }),
+            Administrador.findOne({ matricula })
+        ]);
+
+        if (existeMatriculaEntrenador || existeMatriculaAtleta || existeMatriculaAdministrador) {
+            console.log("[LOG] La matrícula ya está en uso.");
+            return res.status(400).json({ mensaje: 'La matrícula ya está en uso por un usuario' });
+        }
+
+        // Continuar con la lógica de agregar la matrícula a la colección de matrículas compartidas
         let registro = await MatriculasCompartidas.findOne();
 
         if (!registro) {
@@ -234,10 +252,10 @@ router.post('/matriculas/:matricula', async (req, res) => {
                 { new: true }
             );
             console.log(`[LOG] Matrícula agregada correctamente. Lista actualizada:`, registro.matriculas);
-            return res.status(200).json({matriculas: registro.matriculas });
+            return res.status(200).json({ matriculas: registro.matriculas });
         } else {
-            console.log("[LOG] La matrícula ya existe en la lista.");
-            return res.status(400).json({ mensaje: 'La matrícula ya existe en la lista' });
+            console.log("[LOG] La matrícula ya existe en la lista de matrículas compartidas.");
+            return res.status(400).json({ mensaje: 'La matrícula ya existe en la lista de matrículas compartidas' });
         }
     } catch (error) {
         console.error("[ERROR] Ocurrió un error al agregar la matrícula:", error);
@@ -245,56 +263,32 @@ router.post('/matriculas/:matricula', async (req, res) => {
     }
 });
 
-// Ruta para eliminar la matrícula
+// Ruta para eliminar la matrícula// Ruta para eliminar la matrícula
 router.delete('/eliminarMatricula/:matricula', async (req, res) => {
-  const matricula = req.params.matricula;
-
-  try {
-    // Eliminar la matrícula de la base de datos de usuarios (si la encuentras ahí)
-    const usuario = await Usuario.findOneAndUpdate(
-      { matricula: matricula },
-      { $set: { matricula: null } }, // O puedes eliminar el usuario si así lo deseas
-      { new: true }
-    );
-
-    if (!usuario) {
-      return res.status(404).json({ mensaje: 'Usuario con esa matrícula no encontrado.' });
+    const matricula = req.params.matricula;
+    console.log("La matrícula recibida:", matricula);  // Verifica el valor recibido
+    
+    // Verificar si la matrícula es A001 y no permitir su eliminación
+    if (matricula === 'A001') {
+        console.log('Intento de eliminar la matrícula A001');  // Este log debe mostrarse si intentas eliminar A001
+        return res.status(400).json({ mensaje: 'No se puede eliminar la matrícula A001.' });
     }
-
-    // Si tienes una colección separada para matriculas disponibles, elimínala de allí también
-    const matriculaEliminada = await Matricula.findOneAndDelete({ matricula: matricula });
-
-    if (!matriculaEliminada) {
-      return res.status(404).json({ mensaje: 'Matrícula no encontrada en la lista de matrículas disponibles.' });
-    }
-
-    return res.status(200).json({ mensaje: 'Matrícula eliminada correctamente.' });
-  } catch (error) {
-    console.error('Error al eliminar la matrícula:', error);
-    return res.status(500).json({ mensaje: 'Error interno en el servidor.' });
-  }
-});
-
-// Ruta para obtener los comentarios con usuario eliminado
-router.get('/comentarioseliminados', async (req, res) => {
+  
     try {
-        // Obtener todos los comentarios y hacer populate de usuario_id
-        const comentarios = await Comentario.find().populate('usuario_id');
-        
-        // Si el usuario no existe o está eliminado, asignar un valor predeterminado
-        const comentariosConUsuarioEliminado = comentarios.map(comentario => {
-            if (comentario.usuario_id && comentario.usuario_id.estado === 'eliminado') {
-                comentario.usuario_id = { nombre: 'Usuario Eliminado', correo: 'N/A' };
-            }
-            return comentario;
-        });
-
-        // Responder con los comentarios
-        res.status(200).json(comentariosConUsuarioEliminado);
+      // Eliminar la matrícula de la base de datos de usuarios
+      const usuario = await Usuario.findOneAndUpdate(
+        { matricula: matricula },
+        { $set: { matricula: null } },
+        { new: true }
+      );
+      
+      // Resto de la lógica
     } catch (error) {
-        console.error('Error al obtener los comentarios:', error);
-        res.status(500).json({ mensaje: 'Error al obtener los comentarios', error });
+      console.error('Error al eliminar la matrícula:', error);
+      return res.status(500).json({ mensaje: 'Error interno en el servidor.' });
     }
-});
+  });
+  
+
 
 module.exports = router;
